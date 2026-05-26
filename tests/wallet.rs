@@ -4,10 +4,10 @@ use std::sync::Arc;
 use assert_matches::assert_matches;
 use bdk_chain::{BlockId, CanonicalizationParams, ConfirmationBlockTime};
 use bdk_wallet::coin_selection;
-use bdk_wallet::descriptor::{calc_checksum, DescriptorError};
+use bdk_wallet::descriptor::{calc_checksum, DescriptorError, IntoWalletDescriptor};
 use bdk_wallet::error::CreateTxError;
 use bdk_wallet::psbt::PsbtUtils;
-use bdk_wallet::signer::{SignOptions, SignerError};
+use bdk_wallet::signer::{SignOptions, SignerError, SignersContainer};
 use bdk_wallet::test_utils::*;
 use bdk_wallet::KeychainKind;
 use bdk_wallet::{AddressInfo, Balance, PersistedWallet, Update, Wallet, WalletTx};
@@ -17,8 +17,8 @@ use bitcoin::script::PushBytesBuf;
 use bitcoin::sighash::{EcdsaSighashType, TapSighashType};
 use bitcoin::taproot::TapNodeHash;
 use bitcoin::{
-    absolute, transaction, Address, Amount, BlockHash, FeeRate, Network, OutPoint, ScriptBuf,
-    Sequence, SignedAmount, Transaction, TxIn, TxOut, Txid,
+    absolute, transaction, Address, Amount, BlockHash, FeeRate, Network, NetworkKind, OutPoint,
+    ScriptBuf, Sequence, SignedAmount, Transaction, TxIn, TxOut, Txid,
 };
 use rand::rngs::StdRng;
 use rand::SeedableRng;
@@ -1366,6 +1366,58 @@ fn test_sign_single_xprv() {
 
     let extracted = psbt.extract_tx().expect("failed to extract tx");
     assert_eq!(extracted.input[0].witness.len(), 2);
+}
+
+#[test]
+fn test_sign_with_signers() {
+    let (descriptor, change_descriptor) = get_test_wpkh_and_change_desc();
+    let (mut wallet, _) = get_funded_wallet(descriptor, change_descriptor);
+    let (_, external_keymap) = descriptor
+        .into_wallet_descriptor(wallet.secp_ctx(), NetworkKind::Test)
+        .unwrap();
+    let external_signers = SignersContainer::build(
+        external_keymap,
+        wallet.public_descriptor(KeychainKind::External),
+        wallet.secp_ctx(),
+    );
+    let (_, internal_keymap) = change_descriptor
+        .into_wallet_descriptor(wallet.secp_ctx(), NetworkKind::Test)
+        .unwrap();
+    let internal_signers = SignersContainer::build(
+        internal_keymap,
+        wallet.public_descriptor(KeychainKind::Internal),
+        wallet.secp_ctx(),
+    );
+
+    let latest_block = wallet.latest_checkpoint().block_id();
+    let internal_addr = wallet.next_unused_address(KeychainKind::Internal);
+    receive_output_to_address(
+        &mut wallet,
+        internal_addr.address,
+        Amount::from_sat(25_000),
+        ConfirmationBlockTime {
+            block_id: latest_block,
+            confirmation_time: 0,
+        },
+    );
+    let addr = wallet.next_unused_address(KeychainKind::External);
+    let mut builder = wallet.build_tx();
+    builder.drain_to(addr.script_pubkey()).drain_wallet();
+    let mut psbt = builder.finish().unwrap();
+    assert_eq!(psbt.inputs.len(), 2);
+
+    let finalized = wallet
+        .sign_with_signers(
+            &mut psbt,
+            &[&external_signers, &internal_signers],
+            Default::default(),
+        )
+        .unwrap();
+    assert!(finalized);
+
+    let extracted = psbt.extract_tx().expect("failed to extract tx");
+    assert_eq!(extracted.input.len(), 2);
+    assert!(extracted.input.iter().all(|input| input.witness.len() == 2));
 }
 
 #[test]
