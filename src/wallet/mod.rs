@@ -3096,5 +3096,7 @@ mod test {
         );
         assert!(result_with_change.is_ok());
         // Wallet name should be main_checksum + change_checksum
+        let wallet_name = result_with_change.unwrap();
+        assert_eq!(wallet_name, "vn4aqs37jgrerlc3");
     }
 }
