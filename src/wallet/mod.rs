@@ -1729,11 +1729,6 @@ impl Wallet {
     /// [`SignerOrdering`]. This function returns the `Result` type with an encapsulated `bool` that
     /// has the value true if the PSBT was finalized, or false otherwise.
     ///
-    /// The [`SignOptions`] can be used to tweak the behavior of the software signers, and the way
-    /// the transaction is finalized at the end. Note that it can't be guaranteed that *every*
-    /// signers will follow the options, but the "software signers" (WIF keys and `xprv`) defined
-    /// in this library will.
-    ///
     /// ## Example
     ///
     /// ```
@@ -1753,7 +1748,68 @@ impl Wallet {
     /// let finalized = wallet.sign(&mut psbt, SignOptions::default())?;
     /// assert!(finalized, "we should have signed all the inputs");
     /// # Ok::<(),anyhow::Error>(())
+    /// ```
     pub fn sign(&self, psbt: &mut Psbt, sign_options: SignOptions) -> Result<bool, SignerError> {
+        self.sign_with_signers(
+            psbt,
+            &[self.signers.as_ref(), self.change_signers.as_ref()],
+            sign_options,
+        )
+    }
+
+    /// Sign a transaction with the provided signer containers.
+    ///
+    /// Signer containers are processed in the order provided. Signers inside each container are
+    /// processed according to their [`SignerOrdering`].
+    ///
+    /// The [`SignOptions`] can be used to tweak the behavior of the software signers, and the way
+    /// the transaction is finalized at the end. Note that it can't be guaranteed that *every*
+    /// signer will follow the options, but the "software signers" (WIF keys and `xprv`) defined
+    /// in this library will.
+    ///
+    /// Returns true if the PSBT was finalized, or false otherwise.
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// # use bdk_wallet::*;
+    /// # use bdk_wallet::bitcoin::*;
+    /// # use bdk_wallet::bitcoin::{NetworkKind, secp256k1::Secp256k1};
+    /// # use bdk_wallet::descriptor::IntoWalletDescriptor;
+    /// # use bdk_wallet::signer::SignersContainer;
+    /// # let mut wallet = doctest_wallet!();
+    /// let signer_descriptor = "tr([73c5da0a/86'/0'/0']tprv8fMn4hSKPRC1oaCPqxDb1JWtgkpeiQvZhsr8W2xuy3GEMkzoArcAWTfJxYb6Wj8XNNDWEjfYKK4wGQXh3ZUXhDF2NcnsALpWTeSwarJt7Vc/0/*)";
+    /// let secp = Secp256k1::new();
+    /// let (_, keymap) = signer_descriptor
+    ///     .into_wallet_descriptor(&secp, NetworkKind::Test)
+    ///     .unwrap();
+    /// let external_signers = SignersContainer::build(
+    ///     keymap,
+    ///     wallet.public_descriptor(KeychainKind::External),
+    ///     wallet.secp_ctx(),
+    /// );
+    ///
+    /// let to_address = wallet.next_unused_address(KeychainKind::External).address;
+    /// let mut psbt = {
+    ///     let mut builder = wallet.build_tx();
+    ///     builder.drain_to(to_address.script_pubkey()).drain_wallet();
+    ///     builder.finish()?
+    /// };
+    ///
+    /// let finalized = wallet.sign_with_signers(
+    ///     &mut psbt,
+    ///     &[&external_signers],
+    ///     SignOptions::default(),
+    /// )?;
+    /// assert!(finalized);
+    /// # Ok::<(), anyhow::Error>(())
+    /// ```
+    pub fn sign_with_signers(
+        &self,
+        psbt: &mut Psbt,
+        signers: &[&SignersContainer],
+        sign_options: SignOptions,
+    ) -> Result<bool, SignerError> {
         // This adds all the PSBT metadata for the inputs, which will help us later figure out how
         // to derive our keys.
         self.update_psbt_with_descriptor(psbt)
@@ -1785,12 +1841,7 @@ impl Wallet {
             return Err(SignerError::NonStandardSighash);
         }
 
-        for signer in self
-            .signers
-            .signers()
-            .iter()
-            .chain(self.change_signers.signers().iter())
-        {
+        for signer in signers.iter().flat_map(|container| container.signers()) {
             signer.sign_transaction(psbt, &sign_options, &self.secp)?;
         }
 
