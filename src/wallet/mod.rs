@@ -2784,16 +2784,19 @@ impl AsRef<bdk_chain::tx_graph::TxGraph<ConfirmationBlockTime>> for Wallet {
     }
 }
 
-/// Generate a deterministic wallet name from descriptor checksums.
+/// Generate a deterministic wallet name from the provided descriptors.
 ///
-/// The wallet name is computed from the parsed public descriptor:
-/// - the checksum of the parsed public descriptor
-/// - if present, the checksum of the parsed change descriptor is appended
+/// The wallet name is the concatenation of the [checksum] of the external and (if provided)
+/// internal public descriptors. If descriptors containing private keys are provided, the name
+/// is computed from the corresponding public descriptors; the result is identical to calling
+/// this function with the equivalent public (xpub) descriptors.
 ///
-/// This is based on the public descriptor form, so equivalent xprv and xpub
-/// inputs produce the same wallet name.
+/// # Errors
 ///
-/// Returns an error if descriptor parsing fails or if checksum computation fails.
+/// If descriptor parsing fails or if checksum computation fails then a [`DescriptorError`] is
+/// returned.
+///
+/// [checksum]: crate::descriptor::checksum::calc_checksum
 pub fn wallet_name_from_descriptor<T>(
     descriptor: T,
     change_descriptor: Option<T>,
