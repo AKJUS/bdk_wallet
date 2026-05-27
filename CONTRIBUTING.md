@@ -57,6 +57,20 @@ comment suggesting that you're working on it. If someone is already assigned,
 don't hesitate to ask if the assigned party or previous commenter are still
 working on it if it has been awhile.
 
+Pull Request Checklist
+----------------------
+
+By opening a pull request, you are confirming that:
+
+- All commits are [GPG signed](https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-commits).
+- The PR description links to the issue it solves, if one exists.
+- `just pre-push` (alias `just p`) was run before pushing. This formats the
+  code, checks that it compiles, runs clippy, runs tests, and checks docs.
+- For new features, tests covering the new functionality have been added.
+- For new features, documentation for the new functionality has been added.
+- For bug fixes, tests reproducing the bug (and now passing) have been added.
+- Any breaking change to the existing API is clearly called out in the PR description.
+
 Deprecation policy
 ------------------
 
@@ -87,7 +101,7 @@ Coding Conventions
 ------------------
 
 This codebase uses spaces, not tabs.
-Use `cargo fmt` with the default settings to format code before committing.
+Use `cargo +nightly fmt` to format code before committing.
 This is also enforced by the CI.
 All public items must be documented. We adhere to the [Rust API Guidelines](https://rust-lang.github.io/api-guidelines/about.html) with respect to documentation.
 
