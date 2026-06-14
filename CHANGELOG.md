@@ -7,6 +7,38 @@ Contributors do not need to change this file but do need to add changelog detail
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v3.1.0]
+
+### Added
+
+- feat(wallet): add `Wallet::sign_with_signers` [#490](https://github.com/bitcoindevkit/bdk_wallet/pull/490)
+- Add `SECURITY.md` [#437](https://github.com/bitcoindevkit/bdk_wallet/pull/437)
+- feat(wallet): add `LoadParams::two_path_descriptor` method [#418](https://github.com/bitcoindevkit/bdk_wallet/pull/418)
+
+### Fixed
+
+- fix(signer): respect allow_all_sighashes in SignerWrapper::sign_input [#476](https://github.com/bitcoindevkit/bdk_wallet/pull/476)
+- fix(coin_selection): avoid per-utxo fee rounding [#479](https://github.com/bitcoindevkit/bdk_wallet/pull/479)
+- Fix wallet name generation to use explicit public descriptor checksum [#482](https://github.com/bitcoindevkit/bdk_wallet/pull/482)
+- fix(types): avoid reachable panics in Utxo::txout for Foreign variant [#487](https://github.com/bitcoindevkit/bdk_wallet/pull/487)
+- fix(audit): add non-witness-utxo validation for psbt [#471](https://github.com/bitcoindevkit/bdk_wallet/pull/471)
+- fix(descriptor): correct index tracking in `combinations()` function [#453](https://github.com/bitcoindevkit/bdk_wallet/pull/453)
+- fix: avoid panic on hardened derivation paths in PSBT key origins [#458](https://github.com/bitcoindevkit/bdk_wallet/pull/458)
+- fix: handle MultiXPrv/MultiXPub in network kind detection and fixup [#459](https://github.com/bitcoindevkit/bdk_wallet/pull/459)
+- fix: always validate non_witness_utxo in add_foreign_utxo [#461](https://github.com/bitcoindevkit/bdk_wallet/pull/461)
+- fix(descriptor): correct variable binding names in `l:` and `u:` fragment modifiers [#454](https://github.com/bitcoindevkit/bdk_wallet/pull/454)
+- test: replace deprecated FeeRate::from_sat_per_vb_unchecked [#455](https://github.com/bitcoindevkit/bdk_wallet/pull/455)
+- fix(coin_selection): `calculate_cs_result` returns the required UTXOs first [#390](https://github.com/bitcoindevkit/bdk_wallet/pull/390)
+- docs(wallet): fix misleading RBF comment in `create_tx` [#422](https://github.com/bitcoindevkit/bdk_wallet/pull/422)
+
+### Changed
+
+- docs: suggest moving most PR checklist items to contributing guide [#492](https://github.com/bitcoindevkit/bdk_wallet/pull/492)
+- ci: pin `idna_adapter` to `1.2.1` [#466](https://github.com/bitcoindevkit/bdk_wallet/pull/466)
+- chore: bump dev version to 3.1.0-alpha.0 [#441](https://github.com/bitcoindevkit/bdk_wallet/pull/441)
+- chore: allow local justfile overrides [#460](https://github.com/bitcoindevkit/bdk_wallet/pull/460)
+- refactor: Delegate `rusqlite::Connection` persister to transaction persister [#421](https://github.com/bitcoindevkit/bdk_wallet/pull/421)
+
 ## [v3.0.0]
 
 ### Added
@@ -1428,3 +1460,4 @@ final transaction is created by calling `finish` on the builder.
 [wallet-2.2.0]: https://github.com/bitcoindevkit/bdk_wallet/releases/tag/wallet-2.2.0
 [wallet-2.3.0]: https://github.com/bitcoindevkit/bdk_wallet/releases/tag/wallet-2.3.0
 [v3.0.0]: https://github.com/bitcoindevkit/bdk_wallet/releases/tag/v3.0.0
+[v3.1.0]: https://github.com/bitcoindevkit/bdk_wallet/releases/tag/v3.1.0
